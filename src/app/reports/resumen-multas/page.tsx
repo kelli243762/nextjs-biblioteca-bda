@@ -1,6 +1,8 @@
 import { query } from '@/lib/db';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 const searchSchema = z.object({
   fecha_inicio: z.string().optional(),
   fecha_fin: z.string().optional(),
@@ -21,46 +23,42 @@ export default async function ResumenMultasPage({
   const queryParams: unknown[] = [];
 
   if (fecha_inicio && fecha_fin) {
-    whereClause = `WHERE mes BETWEEN $1 AND $2`;
+    whereClause = 'WHERE mes BETWEEN $1 AND $2';
     queryParams.push(fecha_inicio, fecha_fin);
   } else if (fecha_inicio) {
-    whereClause = `WHERE mes >= $1`;
+    whereClause = 'WHERE mes >= $1';
     queryParams.push(fecha_inicio);
   } else if (fecha_fin) {
-    whereClause = `WHERE mes <= $1`;
+    whereClause = 'WHERE mes <= $1';
     queryParams.push(fecha_fin);
   }
 
   const limitIndex = queryParams.length + 1;
 
   const result = await query(
-    `SELECT * FROM vw_fines_summary
-     ${whereClause}
-     ORDER BY mes DESC
-     LIMIT $${limitIndex} OFFSET $${limitIndex + 1}`,
+    'SELECT * FROM vw_fines_summary ' + whereClause + ' ORDER BY mes DESC LIMIT $' + limitIndex + ' OFFSET $' + (limitIndex + 1),
     [...queryParams, limit, offset]
   );
 
   const total = await query(
-    `SELECT COUNT(*), SUM(monto_total) as gran_total,
-     SUM(monto_pagado) as total_pagado,
-     SUM(monto_pendiente) as total_pendiente
-     FROM vw_fines_summary ${whereClause}`,
+    'SELECT COUNT(*), SUM(monto_total) as gran_total, SUM(monto_pagado) as total_pagado, SUM(monto_pendiente) as total_pendiente FROM vw_fines_summary ' + whereClause,
     queryParams
   );
 
   const totalPages = Math.ceil(Number(total.rows[0].count) / limit);
+  const extras = (fecha_inicio ? '&fecha_inicio=' + fecha_inicio : '') + (fecha_fin ? '&fecha_fin=' + fecha_fin : '');
+  const prevUrl = '/reports/resumen-multas?page=' + String(page - 1) + extras;
+  const nextUrl = '/reports/resumen-multas?page=' + String(page + 1) + extras;
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-5xl mx-auto">
-        <a href="/" className="text-blue-500 text-sm mb-4 block">← Volver al dashboard</a>
+        <a href="/" className="text-blue-500 text-sm mb-4 block">Volver al dashboard</a>
         <h1 className="text-2xl font-bold text-gray-800 mb-1">Resumen de multas</h1>
         <p className="text-gray-500 text-sm mb-6">
           Resumen mensual de multas generadas, pagadas y pendientes de cobro.
         </p>
 
-        {/* KPIs */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
             <p className="text-sm text-yellow-600">Monto total</p>
@@ -82,7 +80,6 @@ export default async function ResumenMultasPage({
           </div>
         </div>
 
-        {/* Filtro por rango de fechas */}
         <form method="GET" className="mb-6 flex gap-2 items-center flex-wrap">
           <label className="text-sm text-gray-600">Desde:</label>
           <input
@@ -98,10 +95,7 @@ export default async function ResumenMultasPage({
             defaultValue={fecha_fin}
             className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
           />
-          <button
-            type="submit"
-            className="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-yellow-600"
-          >
+          <button type="submit" className="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-yellow-600">
             Filtrar
           </button>
           {(fecha_inicio || fecha_fin) && (
@@ -111,7 +105,6 @@ export default async function ResumenMultasPage({
           )}
         </form>
 
-        {/* Tabla */}
         <div className="bg-white rounded-xl border overflow-hidden shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-gray-100 text-gray-600">
@@ -141,13 +134,13 @@ export default async function ResumenMultasPage({
                     ${Number(row.monto_pendiente).toFixed(2)}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                    <span className={
                       Number(row.porcentaje_cobrado) >= 75
-                        ? 'bg-green-100 text-green-700'
+                        ? 'px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700'
                         : Number(row.porcentaje_cobrado) >= 40
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}>
+                        ? 'px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700'
+                        : 'px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700'
+                    }>
                       {row.porcentaje_cobrado}%
                     </span>
                   </td>
@@ -157,25 +150,18 @@ export default async function ResumenMultasPage({
           </table>
         </div>
 
-        {/* Paginación */}
         <div className="flex gap-2 mt-6 justify-center">
           {page > 1 && (
-            
-              href={`/reports/resumen-multas?page=${page - 1}${fecha_inicio ? `&fecha_inicio=${fecha_inicio}` : ''}${fecha_fin ? `&fecha_fin=${fecha_fin}` : ''}`}
-              className="px-4 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50"
-            >
-              ← Anterior
+            <a href={prevUrl} className="px-4 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50">
+              Anterior
             </a>
           )}
           <span className="px-4 py-2 text-sm text-gray-500">
-            Página {page} de {totalPages}
+            Pagina {page} de {totalPages}
           </span>
           {page < totalPages && (
-            
-              href={`/reports/resumen-multas?page=${page + 1}${fecha_inicio ? `&fecha_inicio=${fecha_inicio}` : ''}${fecha_fin ? `&fecha_fin=${fecha_fin}` : ''}`}
-              className="px-4 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50"
-            >
-              Siguiente →
+            <a href={nextUrl} className="px-4 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50">
+              Siguiente
             </a>
           )}
         </div>

@@ -1,6 +1,8 @@
 import { query } from '@/lib/db';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 const searchSchema = z.object({
   min_days: z.coerce.number().min(0).default(0),
   page: z.coerce.number().min(1).default(1),
@@ -17,35 +19,31 @@ export default async function PrestamosVencidosPage({
   const offset = (page - 1) * limit;
 
   const result = await query(
-    `SELECT * FROM vw_overdue_loans
-     WHERE dias_atraso >= $1
-     ORDER BY dias_atraso DESC
-     LIMIT $2 OFFSET $3`,
+    'SELECT * FROM vw_overdue_loans WHERE dias_atraso >= $1 ORDER BY dias_atraso DESC LIMIT $2 OFFSET $3',
     [min_days, limit, offset]
   );
 
   const total = await query(
-    `SELECT COUNT(*), SUM(monto_sugerido) as total_monto
-     FROM vw_overdue_loans
-     WHERE dias_atraso >= $1`,
+    'SELECT COUNT(*), SUM(monto_sugerido) as total_monto FROM vw_overdue_loans WHERE dias_atraso >= $1',
     [min_days]
   );
 
   const totalPages = Math.ceil(Number(total.rows[0].count) / limit);
+  const prevUrl = '/reports/prestamos-vencidos?page=' + String(page - 1) + '&min_days=' + String(min_days);
+  const nextUrl = '/reports/prestamos-vencidos?page=' + String(page + 1) + '&min_days=' + String(min_days);
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-5xl mx-auto">
-        <a href="/" className="text-blue-500 text-sm mb-4 block">← Volver al dashboard</a>
-        <h1 className="text-2xl font-bold text-gray-800 mb-1">Préstamos vencidos</h1>
+        <a href="/" className="text-blue-500 text-sm mb-4 block">Volver al dashboard</a>
+        <h1 className="text-2xl font-bold text-gray-800 mb-1">Prestamos vencidos</h1>
         <p className="text-gray-500 text-sm mb-6">
-          Préstamos no devueltos con días de atraso y monto sugerido de multa.
+          Prestamos no devueltos con dias de atraso y monto sugerido de multa.
         </p>
 
-        {/* KPIs */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-            <p className="text-sm text-red-600">Total préstamos vencidos</p>
+            <p className="text-sm text-red-600">Total prestamos vencidos</p>
             <p className="text-3xl font-bold text-red-800">{total.rows[0].count}</p>
           </div>
           <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
@@ -56,9 +54,8 @@ export default async function PrestamosVencidosPage({
           </div>
         </div>
 
-        {/* Filtro */}
         <form method="GET" className="mb-6 flex gap-2 items-center">
-          <label className="text-sm text-gray-600">Mínimo días de atraso:</label>
+          <label className="text-sm text-gray-600">Minimo dias de atraso:</label>
           <input
             type="number"
             name="min_days"
@@ -66,10 +63,7 @@ export default async function PrestamosVencidosPage({
             min={0}
             className="border rounded-lg px-4 py-2 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-red-300"
           />
-          <button
-            type="submit"
-            className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700"
-          >
+          <button type="submit" className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700">
             Filtrar
           </button>
           {min_days > 0 && (
@@ -79,15 +73,14 @@ export default async function PrestamosVencidosPage({
           )}
         </form>
 
-        {/* Tabla */}
         <div className="bg-white rounded-xl border overflow-hidden shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-gray-100 text-gray-600">
               <tr>
                 <th className="px-4 py-3 text-left">Socio</th>
                 <th className="px-4 py-3 text-left">Libro</th>
-                <th className="px-4 py-3 text-left">Fecha límite</th>
-                <th className="px-4 py-3 text-right">Días atraso</th>
+                <th className="px-4 py-3 text-left">Fecha limite</th>
+                <th className="px-4 py-3 text-right">Dias atraso</th>
                 <th className="px-4 py-3 text-right">Monto sugerido</th>
               </tr>
             </thead>
@@ -107,7 +100,7 @@ export default async function PrestamosVencidosPage({
                   </td>
                   <td className="px-4 py-3 text-right">
                     <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full font-semibold">
-                      {row.dias_atraso} días
+                      {row.dias_atraso} dias
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right font-semibold text-orange-700">
@@ -119,25 +112,18 @@ export default async function PrestamosVencidosPage({
           </table>
         </div>
 
-        {/* Paginación */}
         <div className="flex gap-2 mt-6 justify-center">
           {page > 1 && (
-            
-              href={`/reports/prestamos-vencidos?page=${page - 1}&min_days=${min_days}`}
-              className="px-4 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50"
-            >
-              ← Anterior
+            <a href={prevUrl} className="px-4 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50">
+              Anterior
             </a>
           )}
           <span className="px-4 py-2 text-sm text-gray-500">
-            Página {page} de {totalPages}
+            Pagina {page} de {totalPages}
           </span>
           {page < totalPages && (
-            
-              href={`/reports/prestamos-vencidos?page=${page + 1}&min_days=${min_days}`}
-              className="px-4 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50"
-            >
-              Siguiente →
+            <a href={nextUrl} className="px-4 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50">
+              Siguiente
             </a>
           )}
         </div>

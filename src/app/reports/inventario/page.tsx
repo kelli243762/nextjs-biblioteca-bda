@@ -1,18 +1,14 @@
 import { query } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export default async function InventarioPage() {
   const result = await query(
-    `SELECT * FROM vw_inventory_health ORDER BY total_copias DESC`
+    'SELECT * FROM vw_inventory_health ORDER BY total_copias DESC'
   );
 
   const totales = await query(
-    `SELECT 
-     SUM(total_copias) as total,
-     SUM(disponibles) as disponibles,
-     SUM(prestadas) as prestadas,
-     SUM(perdidas) as perdidas,
-     SUM(en_mantenimiento) as en_mantenimiento
-     FROM vw_inventory_health`
+    'SELECT SUM(total_copias) as total, SUM(disponibles) as disponibles, SUM(prestadas) as prestadas, SUM(perdidas) as perdidas, SUM(en_mantenimiento) as en_mantenimiento FROM vw_inventory_health'
   );
 
   const t = totales.rows[0];
@@ -20,13 +16,12 @@ export default async function InventarioPage() {
   return (
     <main className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-5xl mx-auto">
-        <a href="/" className="text-blue-500 text-sm mb-4 block">← Volver al dashboard</a>
+        <a href="/" className="text-blue-500 text-sm mb-4 block">Volver al dashboard</a>
         <h1 className="text-2xl font-bold text-gray-800 mb-1">Salud del inventario</h1>
         <p className="text-gray-500 text-sm mb-6">
-          Estado actual del inventario agrupado por categoría de libro.
+          Estado actual del inventario agrupado por categoria de libro.
         </p>
 
-        {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
             <p className="text-sm text-purple-600">Total copias</p>
@@ -46,12 +41,11 @@ export default async function InventarioPage() {
           </div>
         </div>
 
-        {/* Tabla */}
         <div className="bg-white rounded-xl border overflow-hidden shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-gray-100 text-gray-600">
               <tr>
-                <th className="px-4 py-3 text-left">Categoría</th>
+                <th className="px-4 py-3 text-left">Categoria</th>
                 <th className="px-4 py-3 text-right">Total</th>
                 <th className="px-4 py-3 text-right">Disponibles</th>
                 <th className="px-4 py-3 text-right">Prestadas</th>
@@ -65,20 +59,18 @@ export default async function InventarioPage() {
                 <tr key={i} className="border-t hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium">{row.category}</td>
                   <td className="px-4 py-3 text-right">{row.total_copias}</td>
-                  <td className="px-4 py-3 text-right text-green-700 font-semibold">
-                    {row.disponibles}
-                  </td>
+                  <td className="px-4 py-3 text-right text-green-700 font-semibold">{row.disponibles}</td>
                   <td className="px-4 py-3 text-right text-blue-700">{row.prestadas}</td>
                   <td className="px-4 py-3 text-right text-red-700">{row.perdidas}</td>
                   <td className="px-4 py-3 text-right text-yellow-700">{row.en_mantenimiento}</td>
                   <td className="px-4 py-3 text-right">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                    <span className={
                       Number(row.porcentaje_disponible) >= 60
-                        ? 'bg-green-100 text-green-700'
+                        ? 'px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700'
                         : Number(row.porcentaje_disponible) >= 30
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}>
+                        ? 'px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700'
+                        : 'px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700'
+                    }>
                       {row.porcentaje_disponible}%
                     </span>
                   </td>
